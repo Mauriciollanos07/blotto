@@ -1,3 +1,3 @@
 # Blotto 
 
-Documento para describir el codigo
+Documento para describir el codigo!
