@@ -1,6 +1,6 @@
-setuptools>=65.0.0
 pip>=25.0.1
 wheel
+setuptools>=65.0.0
 dash==2.18.1
 pandas==2.2.3
 gunicorn
