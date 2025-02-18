@@ -2,7 +2,10 @@ from dash import Dash, html, dcc, callback, callback_context, dash_table, MATCH,
 from dash.dependencies import Input, Output, State
 
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
+
 
 import random
 
@@ -30,6 +33,8 @@ number_of_fields = 5
 app.layout = html.Div([
 
     dcc.Store(id="store-data", storage_type="memory", data=[]),
+
+    dcc.Store(id="hexbin-values", storage_type="memory", data={"x": 0, "y": 0}),
 
     html.H1("BLOTTO GAME"),
 
@@ -209,6 +214,7 @@ def update_total(values):
 # Update stored data
 @app.callback(
     Output("store-data", "data"),
+    Output("hexbin-values", "data"),
     Input("submit-btn", "n_clicks"),
     Input("store-data", "data"),
     [State({"type": "slider", "index": ALL}, "value")],
@@ -234,7 +240,26 @@ def save_data(n_clicks, data, player_allocations):
         data = ai_allocations
         print(f"data has been updated and is {data}")
 
-    return [data]  # Guardamos el valor como lista (para probar)
+        x = [1, 1, 2]
+        y = [1, 2, 1]
+
+        # Create variable for hexbin
+        if len(player_allocations) > 3:
+            x.append(2)
+            y.append(2)
+        
+        if len(player_allocations) > 4:
+            x.append(3)
+            y.append(1)
+
+        if len(player_allocations) > 5:
+            x.append(3)
+            y.append(2)
+
+        print(f"hex bin data is: x: {x}, y: {y}")
+        
+
+    return [data], {"x": x, "y": y}  # Guardamos el valor como lista (para probar)
 
 
 # Simulate round against random results from machine
@@ -245,10 +270,11 @@ def save_data(n_clicks, data, player_allocations):
     [Input("submit-btn", "n_clicks")],
     [Input("graph-display", "value")],
     [Input("store-data", "data")],
+    [Input("hexbin-values", "data")],
     [State("table", "data")],
     [State({"type": "slider", "index": ALL}, "value")]
 )
-def calculate_results(n_clicks, graph_selected, s_data, t_d, player_allocations):
+def calculate_results(n_clicks, graph_selected, s_data, hb_values, t_d, player_allocations):
 
     # Make dataframe
     victories_df_copy = pd.DataFrame(t_d)
@@ -273,13 +299,17 @@ def calculate_results(n_clicks, graph_selected, s_data, t_d, player_allocations)
     # Results per battlefield
     results = []
     print(f"Data imported from dcc.Store is {s_data}")
-    for i in range(len(player_allocations)):
-        if player_allocations[i] > s_data[0][i]:
-            results.append("Player")
-        elif player_allocations[i] < s_data[0][i]:
-            results.append("AI")
-        else:
-            results.append("Tie")
+    if len(player_allocations) == len(s_data[0]):
+        for i in range(len(player_allocations)):
+            if player_allocations[i] > s_data[0][i]:
+                results.append("Player")
+            elif player_allocations[i] < s_data[0][i]:
+                results.append("AI")
+            else:
+                results.append("Tie")
+
+    battle_winner = np.array(results)
+    print(f"battle_winner: {battle_winner}")
 
     # Summary
     player_wins = results.count("Player")
@@ -321,14 +351,37 @@ def calculate_results(n_clicks, graph_selected, s_data, t_d, player_allocations)
     # Update graph based on tab selected
     #if graph_selected == "general-info-chart":
     # Visualization
-    df = pd.DataFrame({
-        "Battlefield": [f"Battlefield {i+1}" for i in range(len(player_allocations))],
-        "Player Allocation": player_allocations,
-        "AI Allocation": s_data[0]
-    })
-    fig = px.bar(df, x="Battlefield", y=["Player Allocation", "AI Allocation"], barmode="group")
+    if len(player_allocations) == len(s_data[0]):
+        df = pd.DataFrame({
+            "Battlefield": [f"Battlefield {i+1}" for i in range(len(player_allocations))],
+            "Player Allocation": player_allocations,
+            "AI Allocation": s_data[0]
+        })
+        fig = px.bar(df, x="Battlefield", y=["Player Allocation", "AI Allocation"], barmode="group")
 
-    if graph_selected == "tab-2":
+        x = np.array(hb_values["x"])
+        y = np.array(hb_values["y"])
+
+        print(f"hb in graph function is, x: {x}, y: {y}")
+
+
+        if graph_selected == "tab-2":
+            fig = go.Figure()
+            mask = np.ones(len(battle_winner), dtype=bool)
+            print(f"mask: {mask}")
+            filtered_x, filtered_y = x[mask], y[mask]
+            print(f"filtered_x: {filtered_x}, filtered_y: {filtered_y}")
+            filtered_players = battle_winner[mask]
+            print(f"filtered_players: {filtered_players}")
+            color_dict = {"Player": "blue", "AI": "red", "Tie": "grey"}
+            for player in ["Player", "AI", "Tie"]:
+                idx = filtered_players == player
+                fig.add_trace(go.Scatter(
+                    x=filtered_x[idx], y=filtered_y[idx], mode="markers",
+                    marker=dict(size=100, symbol="hexagon", color=color_dict[player]),
+                    name=player
+                ))
+    else:
         fig = {}
 
 
