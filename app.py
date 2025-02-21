@@ -2,7 +2,7 @@ from dash import Dash, html, dcc, callback, callback_context, dash_table, MATCH,
 from dash.dependencies import Input, Output, State
 
 import plotly.express as px
-import plotly.graph_objects as go
+import plotly.figure_factory as ff
 import pandas as pd
 import numpy as np
 
@@ -23,6 +23,14 @@ victories_table_df = pd.DataFrame({
     "Empates": [0, 0]
 })
 
+# 🔹 Datos ficticios de territorios ganados por dos jugadores
+map_df =  pd.DataFrame({
+    "lat": [19.4, 19.6, 19.8, 20.0, 19.5, 19.7],  # Latitudes de territorios
+    "lon": [-99.1, -99.3, -99.2, -99.5, -99.4, -99.6],  # Longitudes
+    "player": ["Tie", "Tie", "Tie", "Tie", "Tie", "Tie"],
+    "color_code": [0, 0, 0, 0, 0, 0]
+})
+
 victories_df_copy = victories_table_df.copy()
 
 game_options = ["DEFAULT", "RULES 2", "RULES 3", "RULES 4"]
@@ -35,7 +43,7 @@ app.layout = html.Div([
 
     dcc.Store(id="store-data", storage_type="memory", data=[]),
 
-    dcc.Store(id="hexbin-values", storage_type="memory", data={"x": 0, "y": 0}),
+    dcc.Store(id="hexbin-values", storage_type="memory", data=[]),
 
     html.H1("BLOTTO GAME"),
 
@@ -108,8 +116,8 @@ app.layout = html.Div([
     html.Div(id="results", style={"marginTop": "20px"}, className="generated-text"),
     
     dcc.Tabs(id="graph-display", value="general-info-chart", children=[
-        dcc.Tab(label="GENERAL INFO CHART", value="general-info-chart"),
-        dcc.Tab(label="TRY OTHER CHART", value="tab-2"),
+        dcc.Tab(label="DISTRIBUTION PER BATTELGROUND", value="general-info-chart", className="generated-text"),
+        dcc.Tab(label="MAPS", value="tab-2", className="generated-text"),
     ]),
 
     dcc.Graph(id="allocation-chart"),
@@ -215,7 +223,7 @@ def update_total(values):
 # Update stored data
 @app.callback(
     Output("store-data", "data"),
-    Output("hexbin-values", "data"),
+    #Output("hexbin-values", "data"),
     Input("submit-btn", "n_clicks"),
     Input("store-data", "data"),
     [State({"type": "slider", "index": ALL}, "value")],
@@ -241,26 +249,25 @@ def save_data(n_clicks, data, player_allocations):
         data = ai_allocations
         print(f"data has been updated and is {data}")
 
-        x = [1, 1, 2]
-        y = [1, 2, 1]
+        """# creat copy of hb dataframe
+        hb_copy = hb_copy.copy()
 
         # Create variable for hexbin
-        if len(player_allocations) > 3:
-            x.append(2)
-            y.append(2)
+        if len(player_allocations) < 6:
+            hb_copy = hb_copy.drop(5).reset_index(drop=True)
         
-        if len(player_allocations) > 4:
-            x.append(3)
-            y.append(1)
+        if len(player_allocations) < 5:
+            hb_copy = hb_copy.drop(4).reset_index(drop=True)
 
-        if len(player_allocations) > 5:
-            x.append(3)
-            y.append(2)
+        if len(player_allocations) < 4:
+            hb_copy = hb_copy.drop(4).reset_index(drop=True)
 
-        print(f"hex bin data is: x: {x}, y: {y}")
+        print(f"hex bin data frame is: {hb_copy}")
+
+        hb_newdata = hb_copy.to_dict"""
         
 
-    return [data], {"x": x, "y": y}  # Guardamos el valor como lista (para probar)
+    return [data]  # Guardamos el valor como lista (para probar)
 
 
 # Simulate round against random results from machine
@@ -271,14 +278,14 @@ def save_data(n_clicks, data, player_allocations):
     [Input("submit-btn", "n_clicks")],
     [Input("graph-display", "value")],
     [Input("store-data", "data")],
-    [Input("hexbin-values", "data")],
     [State("table", "data")],
     [State({"type": "slider", "index": ALL}, "value")]
 )
-def calculate_results(n_clicks, graph_selected, s_data, hb_values, t_d, player_allocations):
+def calculate_results(n_clicks, graph_selected, s_data, t_d, player_allocations):
 
     # Make dataframe
     victories_df_copy = pd.DataFrame(t_d)
+    hexbin_df = pd.DataFrame(map_df)
 
 
     # Get info about click trigger
@@ -339,6 +346,16 @@ def calculate_results(n_clicks, graph_selected, s_data, hb_values, t_d, player_a
         elif player_wins == ai_wins:
             victories_df_copy.at[0, "Empates"] = victories_df_copy.at[0, "Empates"] + 1
             victories_df_copy.at[1, "Empates"] = victories_df_copy.at[1, "Empates"] + 1
+        
+        """# update map dataframe
+        if len(player_allocations) < 6:
+            hexbin_df = hexbin_df.drop(5).reset_index(drop=True)
+    
+        if len(player_allocations) < 5:
+            hexbin_df = hexbin_df.drop(4).reset_index(drop=True)
+
+        if len(player_allocations) < 4:
+            hexbin_df = hexbin_df.drop(3).reset_index(drop=True)"""
 
     # Update order of table according to who is leading
     victories_df_copy = victories_df_copy.sort_values("Victorias", ascending=False)
@@ -353,35 +370,70 @@ def calculate_results(n_clicks, graph_selected, s_data, hb_values, t_d, player_a
     #if graph_selected == "general-info-chart":
     # Visualization
     if len(player_allocations) == len(s_data[0]):
-        df = pd.DataFrame({
-            "Battlefield": [f"Battlefield {i+1}" for i in range(len(player_allocations))],
-            "Player Allocation": player_allocations,
-            "AI Allocation": s_data[0]
-        })
-        fig = px.bar(df, x="Battlefield", y=["Player Allocation", "AI Allocation"], barmode="group")
-
-        x = np.array(hb_values["x"])
-        y = np.array(hb_values["y"])
-
-        print(f"hb in graph function is, x: {x}, y: {y}")
+        if graph_selected == "general-info-chart":
+            df = pd.DataFrame({
+                "Battlefield": [f"Battlefield {i+1}" for i in range(len(player_allocations))],
+                "Player Allocation": player_allocations,
+                "AI Allocation": s_data[0]
+            })
+            fig = px.bar(df, x="Battlefield", y=["Player Allocation", "AI Allocation"], barmode="group")
 
 
-        if graph_selected == "tab-2":
-            fig = go.Figure()
-            mask = np.ones(len(battle_winner), dtype=bool)
-            print(f"mask: {mask}")
-            filtered_x, filtered_y = x[mask], y[mask]
-            print(f"filtered_x: {filtered_x}, filtered_y: {filtered_y}")
-            filtered_players = battle_winner[mask]
-            print(f"filtered_players: {filtered_players}")
-            color_dict = {"Player": "blue", "AI": "red", "Tie": "grey"}
-            for player in ["Player", "AI", "Tie"]:
-                idx = filtered_players == player
-                fig.add_trace(go.Scatter(
-                    x=filtered_x[idx], y=filtered_y[idx], mode="markers",
-                    marker=dict(size=100, symbol="hexagon", color=color_dict[player]),
-                    name=player
-                ))
+        elif graph_selected == "tab-2":
+            new_color_codes = []
+
+            print(f"len hexbin is: {len(hexbin_df.to_dict('records'))}")
+
+            # update map dataframe
+            if len(player_allocations) < 6:
+                hexbin_df = hexbin_df.drop(5).reset_index(drop=True)
+        
+            if len(player_allocations) < 5:
+                hexbin_df = hexbin_df.drop(4).reset_index(drop=True)
+
+            if len(player_allocations) < 4:
+                hexbin_df = hexbin_df.drop(3).reset_index(drop=True)
+
+            for result in results:
+                
+                print(f"result is: {result}")
+                if result == "AI":
+                    new_color_codes.append(2)
+                elif result == "Player":
+                    new_color_codes.append(1)
+                else:
+                    new_color_codes.append(0)
+                print(f"new_color_codes is: {new_color_codes}")
+
+            print(f"hex bin data frame is: {hexbin_df}")
+            hexbin_df["player"] = results
+            hexbin_df["color_code"] = new_color_codes
+
+            hexbin_df = hexbin_df.iloc[:len(player_allocations)]
+            print(f"hexbind_df[color_code] is: \n {hexbin_df['color_code']}")
+
+            fig = ff.create_hexbin_mapbox(
+            data_frame = hexbin_df,
+            lat=hexbin_df["lat"],
+            lon=hexbin_df["lon"],
+            color=hexbin_df["color_code"],
+            nx_hexagon=10,  # 🔹 Cantidad de hexágonos en eje X
+            opacity=1,
+            range_color=[0, 2],
+            color_continuous_scale=[[0, "grey"],
+                                    [0.5, "blue"],
+                                    [1, "red"],]
+        )
+
+            fig.update_layout(
+                mapbox_style="carto-positron",
+                height=600,
+                coloraxis_colorbar=dict(
+                title=dict(text="Battlegorunds"),
+                tickvals=[0,1,2],
+                ticktext=["Tie", "Player", "Ai"]
+)
+                )
     else:
         fig = {}
 
