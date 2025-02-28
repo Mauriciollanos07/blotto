@@ -6,7 +6,6 @@ import plotly.figure_factory as ff
 import pandas as pd
 import numpy as np
 
-
 import random
 
 app = Dash(__name__)
@@ -33,7 +32,28 @@ map_df =  pd.DataFrame({
 
 victories_df_copy = victories_table_df.copy()
 
-game_options = ["DEFAULT", "RULES 2", "RULES 3", "RULES 4"]
+GAME_OPTIONS = {"DEFAULT": f"""You have chosen DEFAULT option which are:\n
+        - You cannot allocate more than 100 resourses in total\n
+        - You can allocate the resources however you want regardless of the round\n
+        - You don't have to allocate all the 100 resourses\n
+        """, 
+    "RULES 2": f"""You have chosen RULES 2 option which are:\n
+        - You cannot allocate more than 100 resourses in total\n
+        - You cannot allocate the same ammount of resources on two different battlefields per round\n
+        - You have to allocate at least half of the 100 resourses in total\n
+        """,
+    "RULES 3": f"""You have chosen RULES 3 option which are:\n
+        - You cannot allocate more than 100 resourses in total\n
+        - You cannot repeat a combination of allocations on different rounds\n
+        - You have to allocate at least 90 resourses in total per round\n
+        """,
+    "RULES 4": f"""You have chosen RULES 4 options which are:\n
+        - You cannot allocate more than 100 resourses in total\n
+        - You cannot leave any battlefield empty\n
+        - You have to allocate all 100 resources per round\n
+        """}
+
+GAME_OPTIONS_KEYS = GAME_OPTIONS.keys()
 
 fields = [3, 4, 5, 6]
 
@@ -42,6 +62,8 @@ number_of_fields = 5
 app.layout = html.Div([
 
     dcc.Store(id="store-data", storage_type="memory", data=[]),
+
+    dcc.Store(id="store-player-data", storage_type="memory", data=[]),
 
     dcc.Store(id="hexbin-values", storage_type="memory", data=[]),
 
@@ -53,9 +75,9 @@ app.layout = html.Div([
                         "label": option, 
                         "value": option, 
                         "title": option,
-                    } for option in game_options
+                    } for option in GAME_OPTIONS_KEYS
                 ],
-        value=game_options[0],
+        value="DEFAULT",
         inline=True, 
         className="dcc_control", 
         id="game-options"),
@@ -159,33 +181,9 @@ app.layout = html.Div([
     Input("game-options", "value")
 )
 def display_rules(rules):
-    rules_for_all = ["- You cannot allocate more than 100 resourses in total"]
-    if rules == "DEFAULT":
-        return f"""You have chosen {rules} option which are:\n
-        {rules_for_all[0]}\n
-        - You can allocate the resources however you want regardless of the round\n
-        - You don't have to allocate all the 100 resourses\n
-        """
-    elif rules == "RULES 2":
-        return f"""You have chosen {rules} option which are:\n
-        {rules_for_all[0]}\n
-        - You cannot allocate the same ammount of resources on two different battlefields per round\n
-        - You have to allocate at least half of the 100 resourses in total\n
-        """
-    elif rules == "RULES 3":
-        return f"""You have chosen {rules} option which are:\n
-        {rules_for_all[0]}\n
-        - You cannot repeat a combination of allocations on different rounds\n
-        - You have to allocate at least 90 resourses in total per round\n
-        """
-    else:
-        return f"""You have chosen {rules} options which are:\n
-        {rules_for_all[0]}\n
-        - You cannot leave any battlefield empty\n
-        - You have to allocate all 100 resources per round\n
-        """
-
-
+    for option in GAME_OPTIONS_KEYS:
+        if rules == option:
+            return GAME_OPTIONS[option]
 
 # Update sliders with correct number of battlefields
 @app.callback(
@@ -208,7 +206,6 @@ def get_num_battlefields(num_battlefields):
             )
         ]) for i in range(num_battlefields)] 
 
-
 # Check if allocations are valid
 @app.callback(
     Output("total-allocated", "children"),
@@ -223,17 +220,23 @@ def update_total(values):
 # Update stored data
 @app.callback(
     Output("store-data", "data"),
-    #Output("hexbin-values", "data"),
+    Output("store-player-data", "data"),
     Input("submit-btn", "n_clicks"),
     Input("store-data", "data"),
+    Input("store-player-data", "data"),
     [State({"type": "slider", "index": ALL}, "value")],
     prevent_initial_call=True
 )
-def save_data(n_clicks, data, player_allocations):
-    if data is None:
-        print(f"data is doesn't exist and is: {data}")
+def save_data(n_clicks, ai_data, player_data, player_allocations):
+    if ai_data is None:
+        print(f"ai_data is doesn't exist and is: {ai_data}")
         return no_update  # No actualizar si no hay valor
-    print(f"data exists and is: {data}")
+    print(f"ai_data exists and is: {ai_data}")
+
+    if player_data is None:
+        print(f"player_data is doesn't exist and is: {player_data}")
+        return no_update  # No actualizar si no hay valor
+    print(f"player_data exists and is: {player_data}")
     
     ctx = callback_context
 
@@ -244,31 +247,11 @@ def save_data(n_clicks, data, player_allocations):
 
     if trigger_id == "submit-btn":
 
-        ai_allocations = [random.randint(0, TOTAL_RESOURCES // len(player_allocations)) for _ in range(len(player_allocations))]
-        print(ai_allocations)
-        data = ai_allocations
-        print(f"data has been updated and is {data}")
-
-        """# creat copy of hb dataframe
-        hb_copy = hb_copy.copy()
-
-        # Create variable for hexbin
-        if len(player_allocations) < 6:
-            hb_copy = hb_copy.drop(5).reset_index(drop=True)
+        ai_data = [random.randint(0, TOTAL_RESOURCES // len(player_allocations)) for _ in range(len(player_allocations))]
+        print(f"data has been updated and is {ai_data}")
+        player_data = player_allocations
         
-        if len(player_allocations) < 5:
-            hb_copy = hb_copy.drop(4).reset_index(drop=True)
-
-        if len(player_allocations) < 4:
-            hb_copy = hb_copy.drop(4).reset_index(drop=True)
-
-        print(f"hex bin data frame is: {hb_copy}")
-
-        hb_newdata = hb_copy.to_dict"""
-        
-
-    return [data]  # Guardamos el valor como lista (para probar)
-
+    return [ai_data], [player_data]  # Guardamos el valor como lista (para probar)
 
 # Simulate round against random results from machine
 @app.callback(
@@ -278,43 +261,45 @@ def save_data(n_clicks, data, player_allocations):
     [Input("submit-btn", "n_clicks")],
     [Input("graph-display", "value")],
     [Input("store-data", "data")],
+    [Input("store-player-data", "data")],
     [State("table", "data")],
-    [State({"type": "slider", "index": ALL}, "value")]
+    #[State({"type": "slider", "index": ALL}, "value")]
 )
-def calculate_results(n_clicks, graph_selected, s_data, t_d, player_allocations):
+def calculate_results(n_clicks, graph_selected, ai_data, player_data, t_d):
 
     # Make dataframe
     victories_df_copy = pd.DataFrame(t_d)
     hexbin_df = pd.DataFrame(map_df)
 
+    # Player allocations
+    if player_data:
+        print(f"player data imported from store is: {player_data[0]}")
+        player_data = player_data[0]
+        print(f"player data after change: {player_data}")
+
+    # Ai allocations
+    if ai_data:
+        print(f"player data imported from store is: {ai_data[0]}")
+        ai_data = ai_data[0]
+        print(f"player data after change: {ai_data}")
 
     # Get info about click trigger
     if not n_clicks:
         return "", {}, victories_df_copy.to_dict('records')
 
-    
-    # Player allocations
-    player_allocations = list(player_allocations)
-
     # Message player if input exceeds and therefor is invalid
-    if sum(player_allocations) > TOTAL_RESOURCES:
+    if sum(player_data) > TOTAL_RESOURCES:
         return "PLAYER EXCEEDED TOTAL RESOURCES! Check distribution and try again", {}, victories_df_copy.to_dict('records')
-
-    # AI allocations (random strategy for now)
-    #ai_allocations = [random.randint(0, TOTAL_RESOURCES // len(player_allocations)) for _ in range(len(player_allocations))]
-    #print(ai_allocations)
 
     # Results per battlefield
     results = []
-    print(f"Data imported from dcc.Store is {s_data}")
-    if len(player_allocations) == len(s_data[0]):
-        for i in range(len(player_allocations)):
-            if player_allocations[i] > s_data[0][i]:
-                results.append("Player")
-            elif player_allocations[i] < s_data[0][i]:
-                results.append("AI")
-            else:
-                results.append("Tie")
+    for i in range(len(player_data)):
+        if player_data[i] > ai_data[i]:
+            results.append("Player")
+        elif player_data[i] < ai_data[i]:
+            results.append("AI")
+        else:
+            results.append("Tie")
 
     battle_winner = np.array(results)
     print(f"battle_winner: {battle_winner}")
@@ -334,6 +319,7 @@ def calculate_results(n_clicks, graph_selected, s_data, t_d, player_allocations)
     else:
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
+    # Update Victories Data Frame if submit button is triggered
     if trigger_id == "submit-btn":
         if player_wins > ai_wins and victories_df_copy.at[0, "Nombre"] == "Player":
             victories_df_copy.at[0, "Victorias"] = victories_df_copy.at[0, "Victorias"] + 1
@@ -346,16 +332,6 @@ def calculate_results(n_clicks, graph_selected, s_data, t_d, player_allocations)
         elif player_wins == ai_wins:
             victories_df_copy.at[0, "Empates"] = victories_df_copy.at[0, "Empates"] + 1
             victories_df_copy.at[1, "Empates"] = victories_df_copy.at[1, "Empates"] + 1
-        
-        """# update map dataframe
-        if len(player_allocations) < 6:
-            hexbin_df = hexbin_df.drop(5).reset_index(drop=True)
-    
-        if len(player_allocations) < 5:
-            hexbin_df = hexbin_df.drop(4).reset_index(drop=True)
-
-        if len(player_allocations) < 4:
-            hexbin_df = hexbin_df.drop(3).reset_index(drop=True)"""
 
     # Update order of table according to who is leading
     victories_df_copy = victories_df_copy.sort_values("Victorias", ascending=False)
@@ -367,79 +343,74 @@ def calculate_results(n_clicks, graph_selected, s_data, t_d, player_allocations)
     #print(victories_table_df)
 
     # Update graph based on tab selected
-    #if graph_selected == "general-info-chart":
     # Visualization
-    if len(player_allocations) == len(s_data[0]):
-        if graph_selected == "general-info-chart":
-            df = pd.DataFrame({
-                "Battlefield": [f"Battlefield {i+1}" for i in range(len(player_allocations))],
-                "Player Allocation": player_allocations,
-                "AI Allocation": s_data[0]
-            })
-            fig = px.bar(df, x="Battlefield", y=["Player Allocation", "AI Allocation"], barmode="group")
+    if graph_selected == "general-info-chart":
+        df = pd.DataFrame({
+            "Battlefield": [f"Battlefield {i+1}" for i in range(len(player_data))],
+            "Player Allocation": player_data,
+            "AI Allocation": ai_data
+        })
+        fig = px.bar(df, x="Battlefield", y=["Player Allocation", "AI Allocation"], barmode="group")
 
+    elif graph_selected == "tab-2":
+        new_color_codes = []
 
-        elif graph_selected == "tab-2":
-            new_color_codes = []
+        print(f"len hexbin is: {len(hexbin_df.to_dict('records'))}")
 
-            print(f"len hexbin is: {len(hexbin_df.to_dict('records'))}")
+        # update map dataframe
+        if len(player_data) < 6:
+            hexbin_df = hexbin_df.drop(5).reset_index(drop=True)
+    
+        if len(player_data) < 5:
+            hexbin_df = hexbin_df.drop(4).reset_index(drop=True)
 
-            # update map dataframe
-            if len(player_allocations) < 6:
-                hexbin_df = hexbin_df.drop(5).reset_index(drop=True)
-        
-            if len(player_allocations) < 5:
-                hexbin_df = hexbin_df.drop(4).reset_index(drop=True)
+        if len(player_data) < 4:
+            hexbin_df = hexbin_df.drop(3).reset_index(drop=True)
 
-            if len(player_allocations) < 4:
-                hexbin_df = hexbin_df.drop(3).reset_index(drop=True)
+        for result in results:
+            
+            print(f"result is: {result}")
+            if result == "AI":
+                new_color_codes.append(2)
+            elif result == "Player":
+                new_color_codes.append(1)
+            else:
+                new_color_codes.append(0)
+            print(f"new_color_codes is: {new_color_codes}")
 
-            for result in results:
-                
-                print(f"result is: {result}")
-                if result == "AI":
-                    new_color_codes.append(2)
-                elif result == "Player":
-                    new_color_codes.append(1)
-                else:
-                    new_color_codes.append(0)
-                print(f"new_color_codes is: {new_color_codes}")
+        print(f"hex bin data frame is: {hexbin_df}")
+        hexbin_df["player"] = results
+        hexbin_df["color_code"] = new_color_codes
 
-            print(f"hex bin data frame is: {hexbin_df}")
-            hexbin_df["player"] = results
-            hexbin_df["color_code"] = new_color_codes
+        hexbin_df = hexbin_df.iloc[:len(player_data)]
+        print(f"hexbind_df[color_code] is: \n {hexbin_df['color_code']}")
 
-            hexbin_df = hexbin_df.iloc[:len(player_allocations)]
-            print(f"hexbind_df[color_code] is: \n {hexbin_df['color_code']}")
+        fig = ff.create_hexbin_mapbox(
+        data_frame = hexbin_df,
+        lat=hexbin_df["lat"],
+        lon=hexbin_df["lon"],
+        color=hexbin_df["color_code"],
+        nx_hexagon=10,  # 🔹 Cantidad de hexágonos en eje X
+        opacity=1,
+        range_color=[0, 2],
+        color_continuous_scale=[[0, "grey"],
+                                [0.5, "blue"],
+                                [1, "red"],]
+    )
 
-            fig = ff.create_hexbin_mapbox(
-            data_frame = hexbin_df,
-            lat=hexbin_df["lat"],
-            lon=hexbin_df["lon"],
-            color=hexbin_df["color_code"],
-            nx_hexagon=10,  # 🔹 Cantidad de hexágonos en eje X
-            opacity=1,
-            range_color=[0, 2],
-            color_continuous_scale=[[0, "grey"],
-                                    [0.5, "blue"],
-                                    [1, "red"],]
+        fig.update_layout(
+            mapbox_style="carto-positron",
+            height=600,
+            coloraxis_colorbar=dict(
+            title=dict(text="Battlegorunds"),
+            tickvals=[0,1,2],
+            ticktext=["Tie", "Player", "Ai"]
+            )
         )
-
-            fig.update_layout(
-                mapbox_style="carto-positron",
-                height=600,
-                coloraxis_colorbar=dict(
-                title=dict(text="Battlegorunds"),
-                tickvals=[0,1,2],
-                ticktext=["Tie", "Player", "Ai"]
-)
-                )
     else:
         fig = {}
 
-
     return summary, fig, victories_df_copy.to_dict('records')
-
 
 # Update styles dinamicly
 @app.callback(
@@ -462,7 +433,7 @@ def update_styles(selected_value, t_d):
                                    "color": "#217234"} if opt == selected_value else {}),
             "value": opt
         }
-        for opt in game_options
+        for opt in GAME_OPTIONS_KEYS
     ],    [
         {
             'if': {
