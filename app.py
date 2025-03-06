@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 
 import random
+import reglas
 
 app = Dash(__name__)
 server = app.server
@@ -22,10 +23,13 @@ victories_table_df = pd.DataFrame({
     "Empates": [0, 0]
 })
 
+ROUNDS_BTN = {True: "CANCEL Rounds", False: "START Rounds"}
+is_rounds = False
+
 # 🔹 Datos ficticios de territorios ganados por dos jugadores
 map_df =  pd.DataFrame({
-    "lat": [19.4, 19.6, 19.8, 20.0, 19.5, 19.7],  # Latitudes de territorios
-    "lon": [-99.1, -99.3, -99.2, -99.5, -99.4, -99.6],  # Longitudes
+    "lat": [4.595556, 38.897778, 51.501, -34.608056, 33.5804, 55.751667],  # Latitudes de territorios
+    "lon": [-74.0775, -77.036667, -0.142, -58.370278, -7.6055, 37.617778],  # Longitudes
     "player": ["Tie", "Tie", "Tie", "Tie", "Tie", "Tie"],
     "color_code": [0, 0, 0, 0, 0, 0]
 })
@@ -67,6 +71,10 @@ app.layout = html.Div([
 
     dcc.Store(id="hexbin-values", storage_type="memory", data=[]),
 
+    dcc.Store(id="rounds-store", storage_type="memory", data=is_rounds),
+
+    dcc.Store(id="rounds-count", storage_type="memory", data=3),
+
     html.H1("BLOTTO GAME"),
 
     dcc.RadioItems(
@@ -103,10 +111,11 @@ app.layout = html.Div([
             ], style={"marginTop": "15px", "marginBottom": "15px"}),
         html.Div(["Rounds",
             dcc.Dropdown(
-                id="number-of-runds",
+                id="number-of-rounds",
                 options=[i for i in range(1, 11)],
                 value=3,
-                clearable=False
+                clearable=False,
+                disabled=False
                 ),
             ], style={"marginTop": "15px", "marginBottom": "15px"}),
         ], className="generated-text", style={"text-align": "left", "marginTop": "30px"}),
@@ -137,6 +146,12 @@ app.layout = html.Div([
     html.Button("Submit Allocations", id="submit-btn", className="button"),
     html.Div(id="results", style={"marginTop": "20px"}, className="generated-text"),
     
+    html.Div(id="rounds-container", children=[
+        html.Div(id="rounds-message", className="generated-text", children=["Start or cancel a game with specific rounds. Doing it will reset table"]),
+        html.Button(ROUNDS_BTN[is_rounds], id="rounds-btn", className= "button", style={"marginBottom": "20px"})
+        ]
+    ),
+
     dcc.Tabs(id="graph-display", value="general-info-chart", children=[
         dcc.Tab(label="DISTRIBUTION PER BATTELGROUND", value="general-info-chart", className="generated-text"),
         dcc.Tab(label="MAPS", value="tab-2", className="generated-text"),
@@ -184,6 +199,14 @@ def display_rules(rules):
     for option in GAME_OPTIONS_KEYS:
         if rules == option:
             return GAME_OPTIONS[option]
+    return f"Rules not found"
+
+@app.callback(
+    Output("rounds-btn", "children"),
+    Input("rounds-store", "data")
+)
+def change_is_rounds(is_rounds):
+    return ROUNDS_BTN[is_rounds]
 
 # Update sliders with correct number of battlefields
 @app.callback(
@@ -217,26 +240,58 @@ def update_total(values):
         return f"Total: {total} (Exceeds limit!)"
     return f"Total: {total}"
 
+# Update is_rounds to know if rounds are active or not
+@app.callback(
+    Output("rounds-store", "data"),
+    Output("number-of-rounds", "disabled"),
+    Input("rounds-btn", "n_clicks"),
+    Input("rounds-store", "data")
+)
+
+def update_is_rounds(n_clicks, is_rounds):
+    if is_rounds is None:
+        return no_update
+
+    disabled = False
+
+    ctx = callback_context
+
+    if not ctx.triggered:
+        trigger_id = "None"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if trigger_id == "rounds-btn":
+        if is_rounds == True:
+            is_rounds = False
+        else:
+            disabled = True
+            is_rounds = True
+        return is_rounds, disabled
+    else:
+        return no_update
+
 # Update stored data
 @app.callback(
     Output("store-data", "data"),
     Output("store-player-data", "data"),
     Input("submit-btn", "n_clicks"),
-    Input("store-data", "data"),
-    Input("store-player-data", "data"),
+    Input("game-options", "value"),
+    State("store-data", "data"),
+    State("store-player-data", "data"),
     [State({"type": "slider", "index": ALL}, "value")],
     prevent_initial_call=True
 )
-def save_data(n_clicks, ai_data, player_data, player_allocations):
+def save_data(n_clicks, rule, ai_data, player_data, player_allocations):
     if ai_data is None:
-        print(f"ai_data is doesn't exist and is: {ai_data}")
+        #print(f"ai_data is doesn't exist and is: {ai_data}")
         return no_update  # No actualizar si no hay valor
-    print(f"ai_data exists and is: {ai_data}")
+    #print(f"ai_data exists and is: {ai_data}")
 
     if player_data is None:
-        print(f"player_data is doesn't exist and is: {player_data}")
+        #print(f"player_data is doesn't exist and is: {player_data}")
         return no_update  # No actualizar si no hay valor
-    print(f"player_data exists and is: {player_data}")
+    #print(f"player_data exists and is: {player_data}")
     
     ctx = callback_context
 
@@ -245,12 +300,21 @@ def save_data(n_clicks, ai_data, player_data, player_allocations):
     else:
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
+    if trigger_id == "game-options":
+        print(f"+++++++++ game options triggered +++++++++")
+        print(f"ai data is {ai_data} and player data is {player_data}")
+        print(f"+++++++++ game options triggered +++++++++")
+
+
     if trigger_id == "submit-btn":
 
-        ai_data = [random.randint(0, TOTAL_RESOURCES // len(player_allocations)) for _ in range(len(player_allocations))]
-        print(f"data has been updated and is {ai_data}")
+        #ai_data = [random.randint(0, TOTAL_RESOURCES // len(player_allocations)) for _ in range(len(player_allocations))]
+        ai_data = reglas.get_ai_allocations(len(player_allocations), rule)
+        print(f"ai data has been updated and is {ai_data}")
         player_data = player_allocations
-        
+        print(f"player data has been updated and is {player_data}")
+    else:
+        return no_update 
     return [ai_data], [player_data]  # Guardamos el valor como lista (para probar)
 
 # Simulate round against random results from machine
@@ -258,14 +322,35 @@ def save_data(n_clicks, ai_data, player_data, player_allocations):
     Output("results", "children"),
     Output("allocation-chart", "figure"),
     Output("table", "data"),
+    Output("rounds-count", "data"),
     [Input("submit-btn", "n_clicks")],
+    [Input("rounds-btn", "n_clicks")],
     [Input("graph-display", "value")],
     [Input("store-data", "data")],
     [Input("store-player-data", "data")],
+    [Input("rounds-store", "data")],
+    [Input("number-of-rounds", "value")],
+    [Input("rounds-count", "data")],
     [State("table", "data")],
     #[State({"type": "slider", "index": ALL}, "value")]
 )
-def calculate_results(n_clicks, graph_selected, ai_data, player_data, t_d):
+def calculate_results(n_clicks, round_clicks, graph_selected, ai_data, player_data, is_round, round_selected, round_count, t_d):
+
+    ctx = callback_context
+
+    if not ctx.triggered:
+        trigger_id = "None"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if is_round == True:
+        r_count = round_count
+    else:
+        r_count = round_selected
+
+    print("**********************************")
+    print(f"rounds count after first import is {r_count}")
+    print("**********************************")
 
     # Make dataframe
     victories_df_copy = pd.DataFrame(t_d)
@@ -273,23 +358,23 @@ def calculate_results(n_clicks, graph_selected, ai_data, player_data, t_d):
 
     # Player allocations
     if player_data:
-        print(f"player data imported from store is: {player_data[0]}")
+        #print(f"player data imported from store is: {player_data[0]}")
         player_data = player_data[0]
-        print(f"player data after change: {player_data}")
+        #print(f"player data after change: {player_data}")
 
     # Ai allocations
     if ai_data:
-        print(f"player data imported from store is: {ai_data[0]}")
+        #print(f"ai data imported from store is: {ai_data[0]}")
         ai_data = ai_data[0]
-        print(f"player data after change: {ai_data}")
+        #print(f"ai data after change: {ai_data}")
 
     # Get info about click trigger
     if not n_clicks:
-        return "", {}, victories_df_copy.to_dict('records')
+        return "", {}, victories_df_copy.to_dict('records'), r_count
 
     # Message player if input exceeds and therefor is invalid
     if sum(player_data) > TOTAL_RESOURCES:
-        return "PLAYER EXCEEDED TOTAL RESOURCES! Check distribution and try again", {}, victories_df_copy.to_dict('records')
+        return "PLAYER EXCEEDED TOTAL RESOURCES! Check distribution and try again", {}, victories_df_copy.to_dict('records'), r_count
 
     # Results per battlefield
     results = []
@@ -301,8 +386,8 @@ def calculate_results(n_clicks, graph_selected, ai_data, player_data, t_d):
         else:
             results.append("Tie")
 
-    battle_winner = np.array(results)
-    print(f"battle_winner: {battle_winner}")
+    #battle_winner = np.array(results)
+    #print(f"battle_winner: {battle_winner}")
 
     # Summary
     player_wins = results.count("Player")
@@ -310,17 +395,34 @@ def calculate_results(n_clicks, graph_selected, ai_data, player_data, t_d):
     summary = f"Player Wins: {player_wins}, AI Wins: {ai_wins}, Ties: {results.count('Tie')}"
 
     #print(victories_df_copy)
+    if trigger_id == "rounds-btn":
+        victories_df_copy = pd.DataFrame({
+            "Nombre": ["Player", "AI"],
+            "Victorias": [0, 0],
+            "Empates": [0, 0]
+        })
 
-    # Update dataframe for table of victories
-    ctx = callback_context
-
-    if not ctx.triggered:
-        trigger_id = "None"
-    else:
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     # Update Victories Data Frame if submit button is triggered
     if trigger_id == "submit-btn":
+
+        # update rounds count if necessary
+        if is_round == True:
+            print("**********************************")
+            if r_count > 0:
+                r_count = r_count - 1
+                print(f"is round is true and r count is more than 0 so count has to be one less that previous round which should be {r_count} ")
+            else:
+                victories_df_copy = pd.DataFrame({
+                    "Nombre": ["Player", "AI"],
+                    "Victorias": [0, 0],
+                    "Empates": [0, 0]
+                })
+                r_count = round_selected
+                print(f"is round is true and r count is less than or equal to 0 so count has to reset, which should be {r_count} ")
+        print("**********************************")
+        
+
         if player_wins > ai_wins and victories_df_copy.at[0, "Nombre"] == "Player":
             victories_df_copy.at[0, "Victorias"] = victories_df_copy.at[0, "Victorias"] + 1
         elif player_wins > ai_wins and victories_df_copy.at[1, "Nombre"] == "Player":
@@ -369,21 +471,21 @@ def calculate_results(n_clicks, graph_selected, ai_data, player_data, t_d):
 
         for result in results:
             
-            print(f"result is: {result}")
+            #print(f"result is: {result}")
             if result == "AI":
                 new_color_codes.append(2)
             elif result == "Player":
                 new_color_codes.append(1)
             else:
                 new_color_codes.append(0)
-            print(f"new_color_codes is: {new_color_codes}")
+            #print(f"new_color_codes is: {new_color_codes}")
 
-        print(f"hex bin data frame is: {hexbin_df}")
+        #print(f"hex bin data frame is: {hexbin_df}")
         hexbin_df["player"] = results
         hexbin_df["color_code"] = new_color_codes
 
         hexbin_df = hexbin_df.iloc[:len(player_data)]
-        print(f"hexbind_df[color_code] is: \n {hexbin_df['color_code']}")
+        #print(f"hexbind_df[color_code] is: \n {hexbin_df['color_code']}")
 
         fig = ff.create_hexbin_mapbox(
         data_frame = hexbin_df,
@@ -410,7 +512,7 @@ def calculate_results(n_clicks, graph_selected, ai_data, player_data, t_d):
     else:
         fig = {}
 
-    return summary, fig, victories_df_copy.to_dict('records')
+    return summary, fig, victories_df_copy.to_dict('records'), r_count
 
 # Update styles dinamicly
 @app.callback(
@@ -443,6 +545,8 @@ def update_styles(selected_value, t_d):
             'color': 'white',
             'font-weight': 'bold'
         }]
+
+print(f"--------------------------------------new--------------------------------------")
 
 
 if __name__ == '__main__':
