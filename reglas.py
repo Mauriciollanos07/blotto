@@ -2,20 +2,19 @@ import numpy as np
 import random
 
 def get_ai_allocations(num_battlefields, rule):
+    # Generate ai allocations that follow the rules selected
     print("-------------------------------")
     print("calling get_ai_allocations cuntion")
     print("-------------------------------")
     # create empty list for return value and resources variable to control how many ai has left
     allocs = []
     t_resources = 100
-    c_resources = 0
 
     print("-------------------------------")
     print(f"will execute {rule} conditional")
     print("-------------------------------")
     # if to control that no value is repeated in final list
     if rule == "RULES 2":
-        val = 0
         for b in range(num_battlefields):
             allocs.append(random.choice([i for i in range(t_resources) if i not in allocs]))
         print(f"--------------------------------------")
@@ -52,56 +51,50 @@ def get_ai_allocations(num_battlefields, rule):
     elif rule == "RULES 4":
         return [random.randint(1, t_resources // num_battlefields) for _ in range(num_battlefields)]
     
-    # Generic ai alloc for the moment
+    # Generic ai alloc
     else:
         return  [random.randint(0, t_resources // num_battlefields) for _ in range(num_battlefields)]
-    
 
-def calcular_puntaje(territorios, rondas, asignaciones_jugador1, asignaciones_jugador2, reglas="mayoria"):
-    """
-    Calcula el puntaje de un juego de Blotto.
+def validate_player_allocs(player_allocs, regla, TOTAL_RESOURCES):
+    # Check the values submitted by the player to see if they follow the rules selected
+    # Return a dictionary with True ot False keys, and an ampty string with True or a string describing erro when false
+    validation = {True: ""}
+    message = ""
+    print(f"message before update")
+    print(f"validation dict before update is: {validation}")
 
-    :param territorios: Número de territorios a disputar.
-    :param rondas: Número de rondas a jugar.
-    :param asignaciones_jugador1: Lista de listas con las asignaciones de tropas del Jugador 1 para cada ronda.
-    :param asignaciones_jugador2: Lista de listas con las asignaciones de tropas del Jugador 2 para cada ronda.
-    :param reglas: Tipo de reglas a aplicar ("mayoria", "proporcion", etc.).
-    :return: Tupla con los puntajes finales de (Jugador 1, Jugador 2).
-    """
-    
-    puntaje_j1 = 0
-    puntaje_j2 = 0
-    
-    for ronda in range(rondas):
-        tropas_j1 = asignaciones_jugador1[ronda]
-        tropas_j2 = asignaciones_jugador2[ronda]
+    if sum(player_allocs) > TOTAL_RESOURCES:
+        print(f"Total resources exceeded first conditional executing")
+        message = f"{message} PLAYER EXCEEDED TOTAL RESOURCES!"
+        print(f"message after update is: {message}")
+        validation = {False: f"{message}"}
+        print(f"validation dict after update is: {validation}")
 
-        for t in range(territorios):
-            if reglas == "mayoria":
-                # El jugador con más tropas gana el punto
-                if tropas_j1[t] > tropas_j2[t]:
-                    puntaje_j1 += 1
-                elif tropas_j2[t] > tropas_j1[t]:
-                    puntaje_j2 += 1
-                # En caso de empate, no se otorgan puntos
-            
-            elif reglas == "proporcion":
-                # Se asignan puntos proporcionales a la inversión de tropas
-                total_tropas = tropas_j1[t] + tropas_j2[t]
-                if total_tropas > 0:
-                    puntaje_j1 += (tropas_j1[t] / total_tropas)
-                    puntaje_j2 += (tropas_j2[t] / total_tropas)
+    if regla == "RULES 2":
+        compare = player_allocs.copy()
+        print(f"player allocs is: {player_allocs} and compare is: {compare}")
+        for b in range(len(compare)):
+            comp_alloc = compare[-1]
+            print(f"compare value is: {comp_alloc}")
+            compare.remove(compare[-1])
+            print(f"player allocs is: {player_allocs} and compare is: {compare}")
+            if comp_alloc in compare:
+                print(f"Rules 2 and repeated alloc found so...")
+                message = f"{message} PLAYER REPEATED VALUES IN DIFFERENT BATTLEFIELDS!"
+                print(f"message after update is: {message}")
+                validation = {False: f"{message}"}
+                print(f"validation dict after update is: {validation}")
+                break
+            else:
+                print(f"value not repeated and continue loop")
+    elif regla == "RULES 3":
+        for alloc in player_allocs:
+            if alloc < 1:
+                print(f"Rules 3 and empty field found so...")
+                message = f"{message} PLAYER HAS LEFT AT LEAST ONE BATTLEFIELD EMPTY"
+                print(f"message after update is: {message}")
+                validation = {False: f"{message}"}
+                print(f"validation dict after update is: {validation}")
+                break
 
-    return round(puntaje_j1, 2), round(puntaje_j2, 2)
-
-# Ejemplo de uso
-"""territorios = 5
-rondas = 3
-asignaciones_jugador1 = [[5, 3, 2, 4, 6], [4, 2, 6, 1, 7], [3, 5, 4, 2, 6]]
-asignaciones_jugador2 = [[4, 4, 3, 5, 5], [2, 3, 7, 2, 6], [5, 2, 3, 4, 7]]"""
-
-#puntajes = calcular_puntaje(territorios, rondas, asignaciones_jugador1, asignaciones_jugador2, reglas="mayoria")
-#print("Puntajes finales:", puntajes)
-
-#prueba = get_ai_allocations(3, "RULES 2")
-#print(f"Prueba: {prueba}")
+    return validation
