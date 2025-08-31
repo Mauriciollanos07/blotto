@@ -95,12 +95,12 @@ app.layout = html.Div([
 
     html.Div(id="rules-explanation",
              className="generated-text",
-             style={"background-color": "#217234",
+             style={"backgroundColor": "#217234",
                     "color": "whitesmoke",
                     "marginTop": "15px",
                     "padding": "5px",
-                    "text-align": "left",
-                    "white-space": "pre-line",
+                    "textAlign": "left",
+                    "whiteSpace": "pre-line",
                     }),
 
     html.Div(["NUMBER OF BATTLEFIELDS AND NUMBER OF ROUNDS",
@@ -121,7 +121,7 @@ app.layout = html.Div([
                 disabled=False
                 ),
             ], style={"marginTop": "15px", "marginBottom": "15px"}),
-        ], className="generated-text", style={"text-align": "left", "marginTop": "30px"}),
+        ], className="generated-text", style={"textAlign": "left", "marginTop": "30px"}),
     
     html.Div([
         html.Div(id="slider-container", 
@@ -169,16 +169,16 @@ app.layout = html.Div([
         ],
         data=victories_table_df.to_dict('records'),
         style_header={
-            "background-color": "#217234",
+            "backgroundColor": "#217234",
             "color": "whitesmoke",
-            "font-weight": "bold",
+            "fontWeight": "bold",
             "padding": "10px",
-            "text-align": "left",
+            "textAlign": "left",
         }, 
         style_cell={
-            "background-color": "whitesmoke",
+            "backgroundColor": "whitesmoke",
             "color": "#217234",
-            "text-align": "left",
+            "textAlign": "left",
             "padding": "10px"    
         },
         style_data_conditional=[
@@ -404,8 +404,9 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
         return "", {}, victories_df_copy.to_dict('records'), r_count
 
     # Message player if allocations dont follow rules selected
-    if False in reglas.validate_player_allocs(player_data, rule, TOTAL_RESOURCES).keys():
-        return reglas.validate_player_allocs(player_data, rule, TOTAL_RESOURCES)[False], {}, victories_df_copy.to_dict('records'), r_count
+    get_validation = reglas.validate_player_allocs(player_data, rule, TOTAL_RESOURCES)
+    if get_validation["Valid"] == False:
+        return get_validation["Message"], {}, victories_df_copy.to_dict('records'), r_count
 
     # Results per battlefield
     results = []
@@ -541,7 +542,7 @@ def update_styles(selected_value, t_d):
         {
             "label": html.Span(opt, 
                                style={
-                                   "font-weight": "bold",
+                                   "fontWeight": "bold",
                                    "color": "#217234"} if opt == selected_value else {}),
             "value": opt
         }
@@ -553,7 +554,7 @@ def update_styles(selected_value, t_d):
             },
             'backgroundColor': '#808D3E',
             'color': 'white',
-            'font-weight': 'bold'
+            'fontWeight': 'bold'
         }]
 
 print(f"--------------------------------------new--------------------------------------")

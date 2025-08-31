@@ -58,7 +58,7 @@ def get_ai_allocations(num_battlefields, rule):
 def validate_player_allocs(player_allocs, regla, TOTAL_RESOURCES):
     # Check the values submitted by the player to see if they follow the rules selected
     # Return a dictionary with True ot False keys, and an ampty string with True or a string describing erro when false
-    validation = {True: ""}
+    validation = {"Message": "", "Valid": True}
     message = ""
     print(f"message before update")
     print(f"validation dict before update is: {validation}")
@@ -67,7 +67,8 @@ def validate_player_allocs(player_allocs, regla, TOTAL_RESOURCES):
         print(f"Total resources exceeded first conditional executing")
         message = f"{message} PLAYER EXCEEDED TOTAL RESOURCES!"
         print(f"message after update is: {message}")
-        validation = {False: f"{message}"}
+        validation["Message"] = f"{message}"
+        validation["Valid"] = False
         print(f"validation dict after update is: {validation}")
 
     if regla == "RULES 2":
@@ -82,7 +83,8 @@ def validate_player_allocs(player_allocs, regla, TOTAL_RESOURCES):
                 print(f"Rules 2 and repeated alloc found so...")
                 message = f"{message} PLAYER REPEATED VALUES IN DIFFERENT BATTLEFIELDS!"
                 print(f"message after update is: {message}")
-                validation = {False: f"{message}"}
+                validation["Message"] = f"{message}"
+                validation["Valid"] = False
                 print(f"validation dict after update is: {validation}")
                 break
             else:
@@ -93,7 +95,8 @@ def validate_player_allocs(player_allocs, regla, TOTAL_RESOURCES):
                 print(f"Rules 3 and empty field found so...")
                 message = f"{message} PLAYER HAS LEFT AT LEAST ONE BATTLEFIELD EMPTY"
                 print(f"message after update is: {message}")
-                validation = {False: f"{message}"}
+                validation["Message"] = f"{message}"
+                validation["Valid"] = False
                 print(f"validation dict after update is: {validation}")
                 break
 
