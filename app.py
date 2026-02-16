@@ -27,7 +27,7 @@ victories_table_df = pd.DataFrame({
 ROUNDS_BTN = {True: "CANCEL match", False: "START Match with Rounds"}
 is_rounds = False
 
-# 🔹 Datos ficticios de territorios ganados por dos jugadores
+# 🔹 Set coordintaes for map vizualization
 map_df =  pd.DataFrame({
     "lat": [4.595556, 38.897778, 51.501, -34.608056, 33.5804, 55.751667],  # Latitudes de territorios
     "lon": [-74.0775, -77.036667, -0.142, -58.370278, -7.6055, 37.617778],  # Longitudes
@@ -69,10 +69,7 @@ app.layout = html.Div([
     dcc.Store(id="store-data", storage_type="memory", data=[]),
     dcc.Store(id="store-player-data", storage_type="memory", data=[]),
 
-    # Values necessary to build the hexbin grid (think is no longer necessary with the map)
-    dcc.Store(id="hexbin-values", storage_type="memory", data=[]),
-
-    # Store if is rounds is active or not
+    # Store if is rounds option is active or not
     dcc.Store(id="rounds-store", storage_type="memory", data=is_rounds),
 
     # Store how many rounds have been played (regressive count)
@@ -199,6 +196,13 @@ app.layout = html.Div([
     Input("game-options", "value")
 )
 def display_rules(rules):
+    """
+    Callback function to display the rules explanation based on the selected game option.
+     Args:
+        rules (str): The selected game option from the radio items.
+     Returns:
+        str: The explanation of the rules corresponding to the selected game option.
+    """
     for option in GAME_OPTIONS_KEYS:
         if rules == option:
             return GAME_OPTIONS[option]
@@ -216,6 +220,14 @@ def display_rules(rules):
 
 )
 def change_is_rounds(is_rounds, rounds_selected, rounds_count):
+    """Callback function to update the state of the rounds match, including the button text, message, and submit button status based on the current state of the rounds match.
+     Args:
+        is_rounds (bool): A boolean indicating whether the rounds match is active or not.
+        rounds_selected (int): The number of rounds selected for the match.
+        rounds_count (int): The current count of rounds played in the match.
+     Returns:
+        tuple: A tuple containing the button text, message, and submit button disabled status.
+    """
     
     # Set variables
     disable = False
@@ -224,19 +236,22 @@ def change_is_rounds(is_rounds, rounds_selected, rounds_count):
     current_round = rounds_selected - rounds_count
 
  # Figure out rounds played if rounds match is active
-    if is_rounds == True:
-        if rounds_selected == rounds_count:
-            current_round = 1
-        elif rounds_count > 0:
-            current_round = (rounds_selected - rounds_count) + 1
-        message = f"{message} You are currently in a rounds match and the current round is {current_round} out of {rounds_selected}"
-    else:
+    # if is round is not activated notify player
+    if not is_rounds:
         message = f"{message} You are currently in free mode"
+        return button_message, message, disable
+    # if rounds selected is equal to rounds count it means that the player has just started a match with rounds and is in the first round, so we set current round to 1
+    elif rounds_selected == rounds_count:
+        current_round = 1
+    # if rounds count is greater than 0 it means that the player has more rounds to play, so we set current round to the difference between rounds selected and rounds count plus 1 (because if the player has 2 rounds to play it means that they are in round 2, if they have 1 round to play it means that they are in round 3, etc)
+    elif rounds_count > 0:
+        current_round = (rounds_selected - rounds_count) + 1
+    message = f"{message} You are currently in a rounds match and the current round is {current_round} out of {rounds_selected}"
 
     # If match is finished disable submit to stop count and make user reset info
     if rounds_count < 1:
         button_message = f"END Match"
-        message = f"You have played the final round, check the table to see the winner and END match to keep playinf"
+        message = f"You have played the final round, check the table to see the winner and END match to keep playing"
         disable = True
 
     return button_message, message, disable
@@ -247,6 +262,12 @@ def change_is_rounds(is_rounds, rounds_selected, rounds_count):
     Input("number-of-fields", "value")
 )
 def get_num_battlefields(num_battlefields):
+    """Callback function to update the number of sliders displayed based on the selected number of battlefields.
+     Args:
+        num_battlefields (int): The number of battlefields selected from the dropdown.
+     Returns:
+        list: A list of html.Div elements containing the sliders for each battlefield.
+    """
     return [html.Div([
             html.H3(f"Battlefield {i+1}"),
             dcc.Slider(
@@ -268,6 +289,12 @@ def get_num_battlefields(num_battlefields):
     Input({"type": "slider", "index": ALL}, "value")
 )
 def update_total(values):
+    """Callback function to early validate and warn player of possible excess of total resources allocated based on the current values of the sliders.
+     Args:
+        values (list): A list of values from all the sliders representing the current allocations for each battlefield.
+     Returns:
+        str: A message indicating the total allocated resources and whether it exceeds the limit or not.
+    """
     total = sum(values)
     if total > TOTAL_RESOURCES:
         return f"Total: {total} (Exceeds limit!)"
@@ -282,6 +309,13 @@ def update_total(values):
 )
 
 def update_is_rounds(n_clicks, is_rounds):
+    """Callback function to update the state of the rounds match based on the clicks on the rounds button and the current state of the rounds match.
+     Args:
+        n_clicks (int): The number of times the rounds button has been clicked.
+        is_rounds (bool): The current state of the rounds match (active or not).
+     Returns:
+        tuple: A tuple containing the updated state of the rounds match and the disabled status of the number of rounds input.
+    """
     if is_rounds is None:
         return no_update
 
@@ -295,15 +329,15 @@ def update_is_rounds(n_clicks, is_rounds):
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     # Whenever rounds button is clicked change status
-    if trigger_id == "rounds-btn":
-        if is_rounds == True:
-            is_rounds = False
-        else:
-            disabled = True
-            is_rounds = True
-        return is_rounds, disabled
-    else:
+    if trigger_id != "rounds-btn":
         return no_update
+    elif is_rounds == True:
+        is_rounds = False
+    else:
+        disabled = True
+        is_rounds = True
+    return is_rounds, disabled
+
 
 # Update stored data for ia allocations and player
 @app.callback(
@@ -317,6 +351,16 @@ def update_is_rounds(n_clicks, is_rounds):
     prevent_initial_call=True
 )
 def save_data(n_clicks, rule, ai_data, player_data, player_allocations):
+    """Callback function to update the stored data for AI allocations and player allocations when the submit button is clicked.
+     Args:
+        n_clicks (int): The number of times the submit button has been clicked.
+        rule (str): The selected game option from the radio items, used to determine the rules for generating AI allocations.
+        ai_data (list): The current stored data for AI allocations, used to update the AI allocations based on the selected rules.
+        player_data (list): The current stored data for player allocations, used to update the player allocations based on the current slider values.
+        player_allocations (list): A list of values from all the sliders representing the current allocations for each battlefield, used to update the player allocations in the stored data.
+     Returns:
+        tuple: A tuple containing the updated data for AI allocations and player allocations to be stored in the respective dcc.Store components.
+    """
     if ai_data is None:
         return no_update  # No update it there is no value (it should never be None because of layout setting)
 
@@ -363,6 +407,22 @@ def save_data(n_clicks, rule, ai_data, player_data, player_allocations):
     [State("table", "data")],
 )
 def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, player_data, is_round, round_selected, round_count, t_d):
+    """Callback function to calculate the results of a round against random AI allocations, update the allocation chart, update the victories table, and manage the rounds count based on 
+        the current state of the game and the inputs received.
+     Args:
+        rule (str): The selected game option from the radio items, used to determine the rules for generating AI allocations and validating player allocations.
+        n_clicks (int): The number of times the submit button has been clicked.
+        round_clicks (int): The number of times the rounds button has been clicked.
+        graph_selected (str): The selected graph display option.
+        ai_data (list): The current stored data for AI allocations.
+        player_data (list): The current stored data for player allocations.
+        is_round (bool): The current state of the rounds match (active or not).
+        round_selected (int): The currently selected round option.
+        round_count (int): The current round count.
+        t_d (list): The current table data.
+    Returns:
+        tuple: A tuple containing the updated results message, the updated allocation chart figure, the updated table data, and the updated rounds count.
+    """
 
     ctx = callback_context
 
@@ -384,6 +444,7 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
     victories_df_copy = pd.DataFrame(t_d)
     hexbin_df = pd.DataFrame(map_df)
 
+    # reset table if rounds button is clicked to start new match
     if trigger_id == "rounds-btn":
         victories_df_copy = pd.DataFrame({
             "Nombre": ["Player", "AI"],
@@ -399,13 +460,13 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
     if ai_data:
         ai_data = ai_data[0]
 
-    # Return nothing if no clicks have happened
+    # Return nothing if no clicks have happened 
     if not n_clicks:
         return "", {}, victories_df_copy.to_dict('records'), r_count
 
     # Message player if allocations dont follow rules selected
     get_validation = reglas.validate_player_allocs(player_data, rule, TOTAL_RESOURCES)
-    if get_validation["Valid"] == False:
+    if not get_validation["Valid"]:
         return get_validation["Message"], {}, victories_df_copy.to_dict('records'), r_count
 
     # Results per battlefield
@@ -431,7 +492,7 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
             print("**********************************")
             if r_count > 0:
                 r_count = r_count - 1
-                print(f"is round is true and r count is more than 0 so count has to be one less that previous round which should be {r_count} ")
+                print(f"is round is true and r count is more than 0 so count has to be one less than previous round which should be {r_count} ")
             else:
                 victories_df_copy = pd.DataFrame({
                     "Nombre": ["Player", "AI"],
@@ -458,7 +519,10 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
     victories_df_copy = victories_df_copy.sort_values("Victorias", ascending=False)
     victories_df_copy = victories_df_copy.reset_index(drop=True)
 
-    print(victories_df_copy)
+    print(f"victories_df_copy: {victories_df_copy}")
+    print(f"results: {results}")
+    print(f"player data: {player_data}")
+    print(f"ai data: {ai_data}")
 
     # Update graph based on tab selected
     # Visualization
@@ -534,6 +598,13 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
     [Input("table", "data")],
 )
 def update_styles(selected_value, t_d):
+    """Callback function to update the styles of the game options and the victories table based on the current state of the game.
+     Args:
+        selected_value (str): The currently selected game option from the radio items.
+        t_d (list): The current data of the victories table, used to determine which player is leading and update the styles accordingly.
+     Returns:
+        tuple: A tuple containing the updated options for the game options radio items with the selected option styled differently, and the updated style conditions for the victories table to highlight the leading player.
+    """
 
     # Make dataframe
     victories_df_copy = pd.DataFrame(t_d)
@@ -541,9 +612,9 @@ def update_styles(selected_value, t_d):
     return [
         {
             "label": html.Span(opt, 
-                               style={
-                                   "fontWeight": "bold",
-                                   "color": "#217234"} if opt == selected_value else {}),
+                style={
+                    "fontWeight": "bold",
+                    "color": "#217234"} if opt == selected_value else {}),
             "value": opt
         }
         for opt in GAME_OPTIONS_KEYS
