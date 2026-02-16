@@ -1,0 +1,27 @@
+/* COLOR PALETTE - Military Tech Theme */
+
+/* Military Colors */
+--military-green-primary: #3D5A3C;
+--military-green-dark: #2C3E2A;
+--military-olive: #556B2F;
+--military-gold: #D4AF37;
+
+/* Tech/Data Colors */
+--tech-cyan: #00D9FF;
+--tech-teal: #0A7E8C;
+--tech-navy: #1E3A5F;
+--tech-neon-green: #00FF88;
+
+/* Neutral Colors */
+--neutral-dark: #1A1A1A;
+--neutral-light: #E8E8E8;
+--neutral-medium: #4A4A4A;
+
+/* Usage Suggestions:
+- Body background: --military-green-dark or --neutral-light
+- Headers/Buttons: --military-green-primary with --military-gold accents
+- Graphs: --tech-cyan and --tech-teal for data visualization
+- Table: --tech-navy headers with --tech-cyan highlights
+- Active states: --tech-neon-green
+- Text: --neutral-dark on light backgrounds, white on dark
+*/

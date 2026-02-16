@@ -1,16 +1,24 @@
+/* Global styles */
+body {
+    background-color: #2C3E2A; /* Dark military green */
+    margin: 0;
+    padding: 0;
+}
+
 /* Style Headers */
 
 H1 {
-    background-color: #217234;
-    color: whitesmoke;
+    background-color: #3D5A3C; /* Military green */
+    color: #D4AF37; /* Military gold */
     font-family: "Avantgarde", "TeX Gyre Adventor", "URW Gothic L", sans-serif;
     font-weight: bold;
     text-align: center;
     padding: 15px 32px;
+    border-bottom: 3px solid #D4AF37;
 }
 
 H3 {
-    color: #217234;
+    color: #D4AF37; /* Military gold */
     font-family: "Avantgarde", "TeX Gyre Adventor", "URW Gothic L", sans-serif;
     font-weight: bold;
     text-align: center;
@@ -21,7 +29,7 @@ H3 {
 
 /* Style generated text */
 .generated-text {
-    color: #217234;
+    color: #E8E8E8; /* Light text */
     font-family: "Avantgarde", "TeX Gyre Adventor", "URW Gothic L", sans-serif;
     font-weight: bold;
     text-align: center;
@@ -30,10 +38,10 @@ H3 {
 /* Style the button */
 .button {
     align-items: center;
-    background-color: #217234;
-    border: none;
+    background-color: #3D5A3C; /* Military green */
+    border: 2px solid #D4AF37; /* Gold border */
     border-radius: 10px;
-    color: whitesmoke;
+    color: #D4AF37;
     cursor: pointer;
     display: flex;
     font-family: "Avantgarde", "TeX Gyre Adventor", "URW Gothic L", sans-serif;
@@ -42,16 +50,12 @@ H3 {
     transition-duration: 0.4s;
     width: 100%;
 }
-#submit-btn:disabled {
-    background-color: grey;
-    cursor: not-allowed;
-    color: darkgrey;
-}
 
 /* Style button when pointer on it */
 .button:hover {
-    background-color: #DDE5DE; 
-    color: #217234;
+    background-color: #D4AF37; /* Gold */
+    color: #2C3E2A; /* Dark green */
+    border-color: #D4AF37;
 }
 
 /* Style the container of the RadioItems */
@@ -64,19 +68,19 @@ H3 {
 
 /* Style the labels */
 .dcc_control label {
-    color: #217234; /* Default text color */
+    color: #3D5A3C; /* Light text */
     cursor: pointer;
     margin: 5px;
 }
 
 .dcc_control input[type="radio"]:checked + label {
-    background-color: #217234; /* Default text color */
+    color: #00FF88; /* Tech neon green for selected */
 }
 
 
 /* Customize the radio button circle */
 .dcc_control input[type="radio"] {
-    appearance: none; /* Hide the default radio button */
+    appearance: none;
     width: 16px;
     height: 16px;
     border: 2px solid;
@@ -84,8 +88,8 @@ H3 {
     margin-right: 10px;
     position: relative;
     cursor: pointer;
-    background-color: whitesmoke;
-    border-color: #217234;
+    background-color: #2C3E2A;
+    border-color: #3D5A3C; /* Gold border */
 }
 
 /* Add a custom indicator for the selected radio button */
@@ -94,7 +98,7 @@ H3 {
     display: block;
     width: 8px;
     height: 8px;
-    background-color: #217234;
+    background-color: #00FF88; /* Tech neon green */
     border-radius: 50%;
     position: absolute;
     top: 50%;
@@ -104,8 +108,8 @@ H3 {
 
 /* Style container of table*/
 .dash-table-container{
-    background-color: #217234;
-    border: 2px solid #217234;
+    background-color: #1E3A5F; /* Tech navy */
+    border: 2px solid #00D9FF; /* Tech cyan border */
     padding: 5px;
 }
 
@@ -117,6 +121,54 @@ H3 {
 /* Style cell of table */
 .dash-cell{
     font-family: "Avantgarde", "TeX Gyre Adventor", "URW Gothic L", sans-serif;
+}
+
+/* Style ids */
+
+#submit-btn:disabled {
+    background-color: #4A4A4A; /* Gray */
+    cursor: not-allowed;
+    color: #1A1A1A;
+    border-color: #4A4A4A;
+}
+
+#rules-explanation {
+    background-color: #3D5A3C; /* Military green */
+    color: #E8E8E8;
+    margin-top: 15px;
+    padding: 5vh 5vw;
+    text-align: left;
+    white-space: pre-line;
+    opacity: 90%;
+    border-left: 4px solid #D4AF37; /* Gold accent */
+}
+
+#container {
+    margin: 5vh 5vw;
+    background-color: #E8E8E8; /* Light background for content */
+    padding: 3vh 3vw;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+#results, #rounds-message {
+    color: #3D5A3C;
+    padding: 1vh;
+}
+
+#tab-1, #tab-2 {
+    color: #0A7E8C;
+}
+
+#allocation-chart {
+    margin: 1vh 1vw;
+    border: 5px solid #0A7E8C;;
+}
+
+#total-allocated {
+    color: #00D9FF;
+    margin-top: 1vh;
+    margin-bottom: 1vh; 
 }
 
 /* comments */

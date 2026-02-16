@@ -4,9 +4,6 @@ from dash.dependencies import Input, Output, State
 import plotly.express as px
 import plotly.figure_factory as ff
 import pandas as pd
-import numpy as np
-
-import random
 import reglas
 
 app = Dash(__name__)
@@ -40,17 +37,17 @@ victories_df_copy = victories_table_df.copy()
 
 # Text to describe the different rules base on selected value
 GAME_OPTIONS = {"DEFAULT": f"""You have chosen DEFAULT option which are:\n
-        - You cannot allocate more than 100 resourses in total\n
-        - You can allocate the resources however you want regardless of the round\n
-        - You don't have to allocate all the 100 resourses\n
+        ⚪ You cannot allocate more than 100 resourses in total\n
+        ⚪ You can allocate the resources however you want regardless of the round\n
+        ⚪ You don't have to allocate all the 100 resourses\n
         """, 
     "RULES 2": f"""You have chosen RULES 2 option which are:\n
-        - You cannot allocate more than 100 resourses in total\n
-        - You cannot allocate the same ammount of resources on two different battlefields per round\n
+        ⚪ You cannot allocate more than 100 resourses in total\n
+        ⚪ You cannot allocate the same ammount of resources on two different battlefields per round\n
         """,
-    "RULES 3": f"""You have chosen RULES 4 options which are:\n
-        - You cannot allocate more than 100 resourses in total\n
-        - You cannot leave any battlefield empty\n
+    "RULES 3": f"""You have chosen RULES 3 options which are:\n
+        ⚪ You cannot allocate more than 100 resourses in total\n
+        ⚪ You cannot leave any battlefield empty\n
         """}
 
 # Take just the keys for the radio items
@@ -91,14 +88,7 @@ app.layout = html.Div([
         id="game-options"),
 
     html.Div(id="rules-explanation",
-             className="generated-text",
-             style={"backgroundColor": "#217234",
-                    "color": "whitesmoke",
-                    "marginTop": "15px",
-                    "padding": "5px",
-                    "textAlign": "left",
-                    "whiteSpace": "pre-line",
-                    }),
+             className="generated-text"),
 
     html.Div(["NUMBER OF BATTLEFIELDS AND NUMBER OF ROUNDS",
         html.Div(["Battlefields",
@@ -118,7 +108,7 @@ app.layout = html.Div([
                 disabled=False
                 ),
             ], style={"marginTop": "15px", "marginBottom": "15px"}),
-        ], className="generated-text", style={"textAlign": "left", "marginTop": "30px"}),
+        ], className="generated-text", style={"textAlign": "left", "marginTop": "30px", "color": "#3D5A3C"}),
     
     html.Div([
         html.Div(id="slider-container", 
@@ -144,8 +134,8 @@ app.layout = html.Div([
     html.Div(id="total-allocated", className="generated-text"),
 
     html.Button("Submit Allocations", id="submit-btn", className="button", disabled=False),
-    html.Div(id="results", style={"marginTop": "20px"}, className="generated-text"),
-    
+    html.Div(id="results", className="generated-text"),
+
     html.Div(id="rounds-container", children=[
         html.Div("Start or cancel a game with specific rounds. Doing it will reset table", id="rounds-message", className="generated-text", style={"marginBottom": "20px", "marginTop": "20px"}),
         html.Button(ROUNDS_BTN[is_rounds], id="rounds-btn", className= "button", style={"marginBottom": "20px"})
@@ -153,8 +143,8 @@ app.layout = html.Div([
     ),
 
     dcc.Tabs(id="graph-display", value="general-info-chart", children=[
-        dcc.Tab(label="DISTRIBUTION PER BATTELGROUND", value="general-info-chart", className="generated-text"),
-        dcc.Tab(label="MAPS", value="tab-2", className="generated-text"),
+        dcc.Tab(label="DISTRIBUTION PER BATTELGROUND", value="general-info-chart", className="generated-text", id="tab-1"),
+        dcc.Tab(label="MAPS", value="tab-2", className="generated-text", id="tab-2"),
     ]),
 
     dcc.Graph(id="allocation-chart"),
@@ -166,7 +156,7 @@ app.layout = html.Div([
         ],
         data=victories_table_df.to_dict('records'),
         style_header={
-            "backgroundColor": "#217234",
+            "backgroundColor": "#1E3A5F",
             "color": "whitesmoke",
             "fontWeight": "bold",
             "padding": "10px",
@@ -174,21 +164,12 @@ app.layout = html.Div([
         }, 
         style_cell={
             "backgroundColor": "whitesmoke",
-            "color": "#217234",
+            "color": "#1E3A5F",
             "textAlign": "left",
             "padding": "10px"    
-        },
-        style_data_conditional=[
-        {
-            'if': {
-                'filter_query': '{{Victorias}} = {}'.format(victories_table_df['Victorias'].max()),
-                'column_id': 'Victorias'
-            },
-            'backgroundColor': '#FF4136',
-            'color': 'white'
-        }]
+        }
     )
-])
+], id="container")
 
 # Display rules according to selection
 @app.callback(
@@ -367,7 +348,6 @@ def save_data(n_clicks, rule, ai_data, player_data, player_allocations):
     if player_data is None:
         return no_update  # No update it there is no value (it should never be None because of layout setting)
 
-    
     ctx = callback_context
 
     if not ctx.triggered:
@@ -377,14 +357,10 @@ def save_data(n_clicks, rule, ai_data, player_data, player_allocations):
 
     # Update data only if submit button is triggered
     if trigger_id == "submit-btn":
-
         ai_data = reglas.get_ai_allocations(len(player_allocations), rule) # Call function to get ai allocations
-        print(f"ai data has been updated and is {ai_data}")
         player_data = player_allocations
-        print(f"player data has been updated and is {player_data}")
 
     else:
-
         return no_update 
     
     return [ai_data], [player_data]
@@ -436,10 +412,6 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
     else:
         r_count = round_selected
 
-    print("**********************************")
-    print(f"rounds count after first import is {r_count}")
-    print("**********************************")
-
     # Make dataframes for graphics
     victories_df_copy = pd.DataFrame(t_d)
     hexbin_df = pd.DataFrame(map_df)
@@ -489,10 +461,8 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
 
         # update rounds count if necessary
         if is_round == True:
-            print("**********************************")
             if r_count > 0:
                 r_count = r_count - 1
-                print(f"is round is true and r count is more than 0 so count has to be one less than previous round which should be {r_count} ")
             else:
                 victories_df_copy = pd.DataFrame({
                     "Nombre": ["Player", "AI"],
@@ -500,8 +470,6 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
                     "Empates": [0, 0]
                 })
                 r_count = round_selected
-                print(f"is round is true and r count is less than or equal to 0 so count has to reset, which should be {r_count} ")
-        print("**********************************")
         
         if player_wins > ai_wins and victories_df_copy.at[0, "Nombre"] == "Player":
             victories_df_copy.at[0, "Victorias"] = victories_df_copy.at[0, "Victorias"] + 1
@@ -519,11 +487,6 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
     victories_df_copy = victories_df_copy.sort_values("Victorias", ascending=False)
     victories_df_copy = victories_df_copy.reset_index(drop=True)
 
-    print(f"victories_df_copy: {victories_df_copy}")
-    print(f"results: {results}")
-    print(f"player data: {player_data}")
-    print(f"ai data: {ai_data}")
-
     # Update graph based on tab selected
     # Visualization
     if graph_selected == "general-info-chart":
@@ -536,8 +499,6 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
 
     elif graph_selected == "tab-2":
         new_color_codes = []
-
-        print(f"len hexbin is: {len(hexbin_df.to_dict('records'))}")
 
         # update map dataframe
         if len(player_data) < 6:
@@ -614,7 +575,7 @@ def update_styles(selected_value, t_d):
             "label": html.Span(opt, 
                 style={
                     "fontWeight": "bold",
-                    "color": "#217234"} if opt == selected_value else {}),
+                    "color": "#2C3E2A"} if opt == selected_value else {}),
             "value": opt
         }
         for opt in GAME_OPTIONS_KEYS
@@ -623,12 +584,10 @@ def update_styles(selected_value, t_d):
             'if': {
                 'filter_query': '{{Victorias}} = {}'.format(victories_df_copy['Victorias'].max()),
             },
-            'backgroundColor': '#808D3E',
+            'backgroundColor': '#0A7E8C',
             'color': 'white',
             'fontWeight': 'bold'
         }]
-
-print(f"--------------------------------------new--------------------------------------")
 
 
 if __name__ == '__main__':
