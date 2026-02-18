@@ -126,7 +126,7 @@ app.layout = html.Div([
                         tooltip={"placement": "left", "always_visible": True}
                     )
                 ]) for i in range(NUM_BATTLEFIELDS)], 
-                style={"display": "flex", "justifyContent": "space-around"}
+                style={"display": "flex", "justifyContent": "space-around", "flexWrap": "wrap", "gap": "15px"}
             )
         ]),
 
@@ -269,7 +269,7 @@ def get_num_battlefields(num_battlefields):
                 marks={i: str(i) for i in range(0, TOTAL_RESOURCES+1, 20)},
                 tooltip={"placement": "left", "always_visible": True}
             )
-        ]) for i in range(num_battlefields)] 
+        ], style={"flex": "1 1 auto", "minWidth": "80px", "maxWidth": "150px"}) for i in range(num_battlefields)] 
 
 # Check if allocations are valid
 @app.callback(
@@ -503,6 +503,11 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
             "AI Allocation": ai_data
         })
         fig = px.bar(df, x="Battlefield", y=["Player Allocation", "AI Allocation"], barmode="group")
+        fig.update_layout(
+            autosize=True,
+            margin=dict(l=20, r=20, t=40, b=20),
+            height=400
+        )
 
     elif graph_selected == "tab-2":
         new_color_codes = []
@@ -547,6 +552,8 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
         fig.update_layout(
             mapbox_style="carto-positron",
             height=600,
+            autosize=True,
+            margin=dict(l=0, r=0, t=0, b=0),
             coloraxis_colorbar=dict(
             title=dict(text="Battlegorunds"),
             tickvals=[0,1,2],
