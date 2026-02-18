@@ -168,7 +168,14 @@ app.layout = html.Div([
             "textAlign": "left",
             "padding": "10px"    
         }
-    )
+    ),
+        html.Footer(children=[
+            html.P("Dash Project created by Mauro Llanos.", style={"color": "#2C3E2A", "textAlign": "center", "padding": "10px"}),
+            html.Div(children=[
+                html.A("Check out my GitHub Repository", href="https://github.com/Mauriciollanos07", className="footer-link", target="_blank", rel="noopener noreferrer"),
+                html.A("Check out my Portfolio", href="https://portafolio-maurollanosdev.vercel.app/", className="footer-link", target="_blank", rel="noopener noreferrer")
+            ], className="footer-links-container")
+        ], className="footer")
 ], id="container")
 
 # Display rules according to selection
