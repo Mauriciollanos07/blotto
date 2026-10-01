@@ -1,0 +1,20 @@
+services:
+  blotto:
+    build: .
+    image: blotto:latest
+    container_name: blotto
+    restart: unless-stopped
+    ports:
+      - "8050:8050"
+    environment:
+      PORT: "8050"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys,os; sys.exit(0 if urllib.request.urlopen(f\"http://127.0.0.1:{os.environ.get('PORT','8050')}/_dash-layout\", timeout=4).status == 200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -1,3 +1,5 @@
+import os
+
 from dash import Dash, html, dcc, callback, callback_context, dash_table, MATCH, ALL, no_update
 from dash.dependencies import Input, Output, State
 
@@ -605,4 +607,8 @@ def update_styles(selected_value, t_d):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(
+        debug=os.environ.get("FLASK_DEBUG", "0") == "1",
+        host=os.environ.get("HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", "8050")),
+    )
