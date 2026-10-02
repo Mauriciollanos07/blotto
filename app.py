@@ -539,7 +539,7 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
 
         color_map = {"Tie": "grey", "Player": "blue", "AI": "red"}
 
-        fig = px.scatter_mapbox(
+        fig = px.scatter_map(
             hexbin_df,
             lat="lat",
             lon="lon",
@@ -550,7 +550,7 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
         )
         fig.update_traces(marker=dict(size=20))
         fig.update_layout(
-            mapbox_style="open-street-map",
+            map_style="open-street-map",
             height=600,
             autosize=True,
             margin=dict(l=0, r=0, t=0, b=0),
