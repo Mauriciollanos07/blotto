@@ -4,7 +4,6 @@ from dash import Dash, html, dcc, callback, callback_context, dash_table, MATCH,
 from dash.dependencies import Input, Output, State
 
 import plotly.express as px
-import plotly.figure_factory as ff
 import pandas as pd
 import reglas
 
@@ -538,29 +537,23 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
 
         hexbin_df = hexbin_df.iloc[:len(player_data)]
 
-        fig = ff.create_hexbin_mapbox(
-        data_frame = hexbin_df,
-        lat=hexbin_df["lat"],
-        lon=hexbin_df["lon"],
-        color=hexbin_df["color_code"],
-        nx_hexagon=10,  
-        opacity=1,
-        range_color=[0, 2],
-        color_continuous_scale=[[0, "grey"],
-                                [0.5, "blue"],
-                                [1, "red"],]
-    )
+        color_map = {"Tie": "grey", "Player": "blue", "AI": "red"}
 
+        fig = px.scatter_mapbox(
+            hexbin_df,
+            lat="lat",
+            lon="lon",
+            color="player",
+            color_discrete_map=color_map,
+            zoom=1,
+            height=600,
+        )
+        fig.update_traces(marker=dict(size=20))
         fig.update_layout(
             mapbox_style="open-street-map",
             height=600,
             autosize=True,
             margin=dict(l=0, r=0, t=0, b=0),
-            coloraxis_colorbar=dict(
-            title=dict(text="Battlegorunds"),
-            tickvals=[0,1,2],
-            ticktext=["Tie", "Player", "Ai"]
-            )
         )
     else:
         fig = {}
