@@ -145,8 +145,8 @@ app.layout = html.Div([
     ),
 
     dcc.Tabs(id="graph-display", value="general-info-chart", children=[
-        dcc.Tab(label="DISTRIBUTION PER BATTELGROUND", value="general-info-chart", className="generated-text", id="tab-1"),
-        dcc.Tab(label="MAPS", value="tab-2", className="generated-text", id="tab-2"),
+        dcc.Tab(label="DISTRIBUTION PER BATTELGROUND", value="general-info-chart", className="generated-text"),
+        dcc.Tab(label="MAPS", value="tab-2", className="generated-text"),
     ]),
 
     dcc.Graph(id="allocation-chart"),
@@ -552,7 +552,7 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
     )
 
         fig.update_layout(
-            mapbox_style="carto-positron",
+            mapbox_style="open-street-map",
             height=600,
             autosize=True,
             margin=dict(l=0, r=0, t=0, b=0),
@@ -610,5 +610,5 @@ if __name__ == '__main__':
     app.run(
         debug=os.environ.get("FLASK_DEBUG", "0") == "1",
         host=os.environ.get("HOST", "127.0.0.1"),
-        port=int(os.environ.get("PORT", "8050")),
+        port=os.environ.get("PORT", "8050"),
     )
