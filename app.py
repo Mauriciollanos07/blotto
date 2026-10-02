@@ -4,6 +4,7 @@ from dash import Dash, html, dcc, callback, callback_context, dash_table, MATCH,
 from dash.dependencies import Input, Output, State
 
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
 import reglas
 
@@ -538,19 +539,19 @@ def calculate_results(rule, n_clicks, round_clicks, graph_selected, ai_data, pla
         hexbin_df = hexbin_df.iloc[:len(player_data)]
 
         color_map = {"Tie": "grey", "Player": "blue", "AI": "red"}
-
-        fig = px.scatter_map(
-            hexbin_df,
-            lat="lat",
-            lon="lon",
-            color="player",
-            color_discrete_map=color_map,
-            zoom=1,
-            height=600,
-        )
-        fig.update_traces(marker=dict(size=20))
+        fig = go.Figure(go.Scattermapbox(
+            lat=hexbin_df["lat"],
+            lon=hexbin_df["lon"],
+            mode="markers",
+            marker=dict(
+                size=20,
+                color=[color_map[r] for r in results],
+            ),
+            text=results,
+        ))
         fig.update_layout(
-            map_style="open-street-map",
+            mapbox_style="open-street-map",
+            mapbox=dict(zoom=1),
             height=600,
             autosize=True,
             margin=dict(l=0, r=0, t=0, b=0),
